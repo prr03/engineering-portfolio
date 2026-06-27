@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paxton's Engineering Portfolio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <h1>Fissure Chess Engine</h1>
+
+        <nav>
+            <a href="index.html">HOME </a>
+            <a href="projects.html">PROJECTS</a>
+            <a href="contact.html">CONTACT</a>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+        
+            <h2>1. Overview</h2>
+            <p>
+				A chess engine written entirely in C to explore search algorithms and evaluation techniques used by other chess engines. 
+				The project originally began as an exploration of search and evaluation, with the intention of using an existing chess library like 
+				python-chess. However, with the help of the Chess Programming Wiki and AI-assistance, I implemented my own board representation 
+				and move generation rather quickly, which allowed me to focus on the search and evaluation part of the engine.
+            </p>
+            <p>
+				Every chess engine has a name, so I chose 'Fissure'. The name is a play on American Grandmaster Bobby Fischer's surname while 
+				also referencing a geological fissure. I liked the idea of an engine that gradually creates weaknesses in an opponent's position 
+				until it eventually breaks open.
+            </p>
+
+            <h2>2. Project Goals</h2>
+			<p>
+				The goal was not to create the strongest possible chess engine, but rather one that was enjoyable to play against. 
+				I wanted an opponent that was challenging, beatable, and offered enough variety to remain fun over repeated games.
+			</p>
+			
+            <h2>3. Board Representation</h2>
+            <p>
+				The first design decision I made was choosing how the board state would be represented in memory. An efficient board representation is 
+				fundamental to the performance of a chess engine, as move generation and evaluation are performed thousands of times during a search. 
+				I chose to represent the board using bitboards, a technique widely used in chess engines because it allows many board operations to be 
+				performed efficiently with bitwise operations.
+			</p>
+            <p>
+            	A bitboard stores the state of the board in a 64-bit unsigned integer (uint64_t), where each bit corresponds to one square on the chessboard. 
+            	Rather than representing the entire board with a single bitboard, the engine maintains a separate bitboard for each piece type. Within a 
+            	given bitboard, a value of 1 indicates that the corresponding piece occupies that square, while a value of 0 indicates that it does not.
+            </p>
+            <p>
+				For example, the engine stores separate bitboards for white pawns, black pawns, white knights, black knights, and so on. Additional 
+				occupancy bitboards are maintained for all white pieces, all black pieces, and all occupied squares to simplify move generation and 
+				collision detection.
+            </p>
+            <p>Initial White Pawn Bitboard: 0x000000000000FF00</p>
+            <pre>
+            8  0 0 0 0 0 0 0 0
+            7  0 0 0 0 0 0 0 0
+            6  0 0 0 0 0 0 0 0
+            5  0 0 0 0 0 0 0 0
+            4  0 0 0 0 0 0 0 0
+            3  0 0 0 0 0 0 0 0
+            2  1 1 1 1 1 1 1 1
+            1  0 0 0 0 0 0 0 0
+               a b c d e f g h
+            </pre>
+            <p>Initial White Occupancy Bitboard: 0x000000000000FFFF</p>
+            <pre>
+            8  0 0 0 0 0 0 0 0
+            7  0 0 0 0 0 0 0 0
+            6  0 0 0 0 0 0 0 0
+            5  0 0 0 0 0 0 0 0
+            4  0 0 0 0 0 0 0 0
+            3  0 0 0 0 0 0 0 0
+            2  1 1 1 1 1 1 1 1
+            1  1 1 1 1 1 1 1 1
+               a b c d e f g h
+            </pre>
+            
+            
+            <h2>4. Move Generation</h2>
+            <p>
+                Move generation is responsible for producing every legal move available from a given board position and serves as the foundation of the engine's search 
+                algorithm. Without accurate move generation, the engine cannot correctly evaluate positions or determine the best move.
+            </p>
+            <p>
+                Each piece type has its own dedicated move generation routine that operates directly on the corresponding bitboard. Rather than scanning every 
+                square on the board, the engine only examines the locations of the relevant pieces. Bitwise shifts, masks, and logical operations are then used 
+                to determine the squares each piece may legally move to.
+            </p>
+            <p>
+                Sliding pieces such as bishops, rooks, and queens continue generating moves along a direction until another piece blocks their path. Knights and kings 
+                instead use predefined movement patterns, while pawns require additional logic to account for single and double advances, captures, promotions, en passant, 
+                and movement direction.
+            </p>
+            <p>
+                Initially, the engine generates pseudo-legal moves, which satisfy the movement rules for each piece. Each candidate move is then played on a temporary 
+                board state and tested to ensure it does not leave the moving side's king in check. Moves that violate this condition are discarded, leaving only legal 
+                moves for the search algorithm to evaluate.
+            </p>
+
+            <h2>5. Legal Move Filtering</h2>
+			<p> The engine first generates pseudo-legal moves, which are moves that follow the basic movement rules for each piece but may still leave the king in check. 
+			To filter these into fully legal moves, each candidate move is temporarily played on the board. The engine then checks whether the moving side's king is 
+			under attack. If the move leaves the king in check, it is discarded; otherwise, it is added to the final legal move list. 
+			</p>
+            
+            <h2>6. FEN Loading</h2>
+            <p> Fissure supports loading positions from FEN strings, allowing the engine to initialize arbitrary chess positions instead of only starting from the 
+            standard opening setup. The FEN loader parses piece placement, side to move, castling rights, and en passant information, then updates the engine's 
+            bitboards and occupancy masks. This made it easier to test move generation, evaluate specific positions, and run engine-versus-engine games from a 
+            variety of training positions. 
+            </p>
+            <p>
+            Starting Position FEN Example: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+            </p>
+            
+            <h2>7. Evaluation</h2>
+            <p> The evaluation function estimates which side is better in a given position. It begins with material balance using configurable values for 
+            pawns, knights, bishops, rooks, and queens. Additional positional terms are then added, including doubled pawn penalties, passed pawn bonuses, 
+            rook open-file bonuses, castling bonuses, center pawn control, bishop mobility concerns, and piece development. These values are stored in an 
+            evaluation parameter structure, making the engine easier to tune and experiment with. 
+            </p>
+            
+            <h2>8. Evolutionary Tuning</h2>
+            <p>
+				To improve the evaluation function, I experimented with a simple evolutionary tuning system written directly in C. Each candidate engine used the 
+				same search algorithm, but had a different set of evaluation parameters, including piece values, doubled pawn penalties, passed pawn weights, 
+				castling bonuses, center pawn bonuses, and development bonuses.
+            </p>
+            <p>
+				The tuning process began with a baseline set of parameters. New candidate parameter sets were created by applying small random mutations to the current best 
+				parameters, while keeping each value within a reasonable range. Each candidate was then tested against the current champion through automated 
+				engine-versus-engine games.
+            </p>
+            <p>
+				To reduce color bias and improve the quality of the comparison, each match was played from multiple training FEN positions, with each candidate playing 
+				both White and Black. Results were scored using wins, draws, and losses, and the stronger candidate became the new champion for the next generation. 
+				The program also logged each candidate’s parameters and match results to a CSV file so the tuning process could be reviewed later.
+            </p>
+            <p>
+				This system was not machine learning in the neural-network sense, but it was a useful experiment in automated parameter optimization. It gave me 
+				experience designing repeatable tests, defining a fitness metric, logging data, and using automated self-play to improve a heuristic evaluation function.
+            </p>
+            <img src="images/Champion Piece Values vs. Generation.svg" alt="Evolutionary tuning results">
+            <p>
+				From the above graph, we see that the champion of each generation is a slight variation of the last. There seems to be trends for each piece value, 
+				more data is needed.
+            </p>
+            <img src="images/Champion Parameters vs. Generation.svg" alt="Evolutionary tuning results 2">
+            <p>
+				From the above graph, we see the positional parameters are not as locked down as the piece parameters.
+            </p>
+
+            <h2>9. Search</h2>
+            <p> 
+            	The search algorithm determines which move the engine should play by exploring future positions and selecting the move with the highest evaluated outcome. 
+            	Fissure uses a negamax search with alpha-beta pruning to efficiently search the game tree.
+            </p>
+            <p>
+            	Below is the negamax search function with alpha-beta pruning to evaluate future move sequences based on the board evaluation from the piece and positional
+            	parameters. Negamax is a simplified minimax and takes advantage of chess being a zero-sum game, meaning a good position for white is a bad position for black. 
+            </p>
+            <pre>
+int negamax(int depth, int alpha, int beta, EvalParams *params, int ply)
+{
+	if(depth == 0)
+		return evaluate(params);
+				
+	generate_legal_moves();
+				    
+	if(move_count == 0)
+	{
+		if(king_in_check(side_to_move))
+			return -100000 + ply; // checkmate
+				    
+		return 0; // stalemate
+	}
+				
+	int best_score = -1000000;
+				
+	Move moves[MAX_MOVES];
+		int count = move_count;
+				
+	for(int i = 0; i < count; i++)
+		moves[i] = move_list[i];
+				
+	order_moves(moves, count);
+				
+	for(int i = 0; i < count; i++)
+	{
+		BoardState saved = save_board();
+				
+		make_move(moves[i]);
+				
+		int score = -negamax(depth - 1, -beta, -alpha, params, ply + 1);
+				
+		restore_board(saved);
+				
+		if(score > best_score)
+			best_score = score;
+				
+		if(score > alpha)
+			alpha = score;
+				
+		if(alpha >= beta)
+			break;
+	}
+				
+	return best_score;
+}
+            </pre>
+            <p>
+				The function searches recursively unitl it reaches the required ply defined when negamax is called. I used a ply of 5. It then generates legal moves, if none
+				are available then stalemate occurs and is scored a 0 unless the side with no moves is in check, then its checkmate and scored as a very negative value.
+            </p>
+
+            <p>
+				Before searching, the engine copies the generated legal moves into a local array and orders them so captures are searched first. For each move, the engine 
+				saves the current board state, makes the move, recursively searches the resulting position from the opponent’s perspective, and then restores 
+				the original board state.
+            </p>
+
+
+
+            <h2>10. Results</h2>
+            <p>
+				As of June 22, 2026, Fissure has played 575 rated games against other bots on Lichess through my bot account, FissureEngine. During this testing period, 
+				the engine recorded 207 wins, 108 draws, and 260 losses.
+            </p>
+            <p>
+				The majority of its games have been played in fast time controls, where it has achieved the following ratings:
+            </p>
+            <p>
+				Blitz: 281 games — 1465 Elo
+            </p>
+            <p>
+				Bullet: 209 games — 1538 Elo
+            </p>
+            <p>
+				These games provided valuable real-world testing of the engine's search and evaluation algorithms against a wide variety of 
+				opponents and play styles.
+            </p>
+
+            <h2>11. Continuation</h2>
+            <p>
+            	If I were to continue working on this engine, I would add a few things to hopefully improve the engine overall.
+            </p>
+            <p>
+				The first improvement would be to strengthen the engine's endgame play, specifically its ability to find forced checkmates. 
+				At the moment, the engine searches to a fixed depth and simply selects the move it evaluates as best. By increasing the search 
+				depth during endgame positions, the engine could spend more time searching for forced mating sequences, much like a human 
+				player calculating an endgame. This could significantly improve its ability to convert winning positions without relying on 
+				endgame tablebases.
+            </p>
+            <p>
+				The second improvement would be to clean up the source code. While the engine functions as intended, many portions of the implementation 
+				were written while I was actively learning new concepts. Refactoring the project into smaller, well-defined modules with clearer interfaces 
+				would make future development, testing, and debugging significantly easier.
+            </p>
+			<p>
+				The final improvement would be to rework or make a similar engine within a file size limit. The current executable file is 56.7 kB and the source code is 64.1 kB.
+				The challenges of restricting the file to something like 30 kB could be very rewarding at an engineering level.
+			</p>
+
+            <h2>12. Resources</h2>
+            <p>
+                https://lichess.org/@/FissureEngine/all
+            </p>
+            <p>
+            	https://www.chessprogramming.org/Main_Page
+            </p>
+            <h2>13. Source Code</h2>
+            
+            <p>
+                The complete source code for Fissure is available below.
+            </p>
+            
+            <a href="chess.c" download>
+                View Source Code
+            </a>
+            
+
+            
+        </section>
+
+    </main>
+</body>
+</html>
+
