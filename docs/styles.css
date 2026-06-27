@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;700&family=IBM+Plex+Serif:wght@300;400;500;700&display=swap');
+
+body {
+    /* Page */
+    background-color: #F6F4EE;
+    color: #2B2B2B;
+
+    /* Layout */
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+
+    /* Typography */
+    font-family: IBM Plex Serif;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* Main Title */
+h1 {
+
+	font-family: IBM Plex Sans;
+    color: #8C2D2D;
+    text-align: center;
+    margin-bottom: 50px;
+    font-size: 56px;
+}
+
+/* Section Titles */
+h2 {
+	font-family: IBM Plex Sans;
+    color: #8C2D2D;
+    border-bottom: 1px solid #D9D9D9;
+    padding-bottom: 6px;
+    font-size: 28px;
+
+}
+
+/* Links */
+a {
+	font-family: IBM Plex Sans;
+    color: #8F3B3B;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+a:hover {
+	font-family: IBM Plex Sans;
+    color: #5878A8;
+    font-size: 18px;
+}
+
+/* Horizontal Lines */
+hr {
+    border: none;
+    border-top: 1px solid #CFCFCF;
+}
+
+nav {
+
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+
+}
+
+pre {
+
+    width: fit-content;
+    margin: 30px auto;
+
+}
+
+figure {
+    text-align: center;
+    margin: 30px 0;
+}
+
+figure img {
+    max-width: 100%;
+    width: auto;    /* or whatever size you prefer */
+    height: auto;
+}
+
+figcaption {
+    margin-top: 0px;
+    font-style: italic;
+    font-size: 0.9rem;
+}
